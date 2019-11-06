@@ -3,8 +3,8 @@ FROM alpine:3.8.4
 LABEL vendor=viz.ai
 LABEL harden-image=true
 
-ARG commit
-ARG branch
+ARG VERSION
+ARG GIT_COMMIT
 
 ENV APPLICATION_USER=application
 ENV APPLICATION_GROUP=application

@@ -1,0 +1,55 @@
+{
+    "variables": {
+        "ssh_username": "ec2-user",
+        "ami_name": "jenkins-master-2.107.2",
+        "role": "jenkins-master"
+    },
+    "provisioners": [{
+            "type": "shell",
+            "inline": ["mkdir -p /home/ec2-user/bin"]
+        },
+        {
+            "type": "file",
+            "source": "scripts/deploy-devops-tools.sh",
+            "destination": "/home/ec2-user/bin/deploy-devops-tools.sh"
+        },
+        {
+            "type": "file",
+            "source": "scripts/kube-ps1.sh",
+            "destination": "/home/ec2-user/bin/kube-ps1.sh"
+        },
+        {
+            "type": "file",
+            "source": "scripts/kubectl-aliases",
+            "destination": "/home/ec2-user/.kubectl.aliases"
+        },
+        {
+            "type": "shell",
+            "script": "./setup/provision.sh"
+        }
+    ],
+    "builders": [{
+        "type": "amazon-ebs",
+        "name": "eu-west-2",
+        "region": "eu-west-2",
+        "instance_type": "{{user `instance_type`}}",
+        "ssh_username": "{{user `ssh_username`}}",
+        "communicator": "ssh",
+        "source_ami_filter": {
+            "filters": {
+                "virtualization-type": "hvm",
+                "name": "amzn2-ami-hvm*86*",
+                "root-device-type": "ebs"
+            },
+            "owners": ["amazon"],
+            "most_recent": true
+        },
+        "ami_name": "{{user `ami_name`}}",
+        "run_tags": {
+            "Name": "packer-builder-for-{{user `role`}}"
+        },
+        "tags": {
+            "role": "{{user `role`}}",
+        }
+    }]
+}

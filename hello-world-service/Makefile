@@ -1,27 +1,28 @@
-#.PHONY: build build-alpine clean test help default
+.PHONY: version
 
 MAKEFILE_VERSION = "0.1.0"
 
-PROJECT_ROOT_DIR = $(shell git rev-parse --show-toplevel)
-PROJECT_ROOT_DIR_BAENAME=$(shell basename "${PROJECT_ROOT_DIR}" )
-MAIN_FILE=main.go
+PROJECT_NAME = hello-world-service
+PROJECT_ROOT_DIR := $(shell git rev-parse --show-toplevel)/${PROJECT_NAME}
+PROJECT_ROOT_DIR_BAENAME := $(shell basename "${PROJECT_ROOT_DIR}" )
+MAIN_FILE = main.go
 
-BIN_NAME=${PROJECT_ROOT_DIR_BAENAME}
-BUILD_DIR=build
+BUILD_DIR = build
+BIN_NAME := ${PROJECT_ROOT_DIR_BAENAME}
 BIN_DIR := ${GOPATH}/bin
 VERSION_FILE := ${PROJECT_ROOT_DIR}/VERSION
 
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
-GOLANGCI_LINT_VERSION := "v1.16.0"
+GOLANGCI_LINT_VERSION = "v1.16.0"
 
 VERSION := $(shell head -n 1 ${VERSION_FILE})
-GIT_COMMIT=$(shell git rev-parse HEAD)
-GIT_DIRTY=$(shell test -n "`git status --porcelain`" && echo "+DIRTY" || true)
-BUILD_DATE=$(shell date '+%Y-%m-%d-%H:%M:%S')
-PLATFORMS := windows linux darwin
+GIT_COMMIT = $(shell git rev-parse HEAD)
+GIT_DIRTY = $(shell test -n "`git status --porcelain`" && echo "+DIRTY" || true)
+BUILD_DATE = $(shell date '+%Y-%m-%d-%H:%M:%S')
+PLATFORMS := linux darwin
 os = $(word 1, $@)
 
-DOCKER_HUB_ORGANIZATION_NAME = "luminate"
+DOCKER_HUB_ORGANIZATION_NAME = "odedpriva"
 CONTAINER_IMAGE_NAME := "${DOCKER_HUB_ORGANIZATION_NAME}/${BIN_NAME}"
 
 default: help
@@ -35,7 +36,6 @@ help:
 	@echo 'Basic commands:'
 	@echo ''
 	@echo '    make tests                       Run local tests.'
-	@echo '    make tests-integration           Run integration tests.'
 	@echo '    make get-deps                    Gettign dependencies.'
 	@echo '    make clean                       Clean the directory tree.'
 	@echo '    make lint                        Runs golangci-lint.'
@@ -57,7 +57,7 @@ build-message:
 	@echo "GIT_COMMIT=${GIT_COMMIT}"
 	@echo "GIT_DIRTY=${GIT_DIRTY}"
 
-$(PLATFORMS):
+$(PLATFORMS): build-message
 	GOOS=$(os) GOARCH=amd64 go build -ldflags "-X ${PROJECT_ROOT_DIR_BAENAME}/commandLineController.GitCommit=${GIT_COMMIT}${GIT_DIRTY} -X ${PROJECT_ROOT_DIR_BAENAME}/cmd.BuildDate=${BUILD_DATE}" -o build/$(os)/amd64/${BIN_NAME} ${MAIN_FILE}
 	@if [ $(os) = "windows" ]; then mv -v build/$(os)/amd64/${BIN_NAME} build/$(os)/amd64/${BIN_NAME}.exe; fi
 
@@ -88,17 +88,12 @@ push: tag
 
 clean:
 	@echo "cleaning ${BUILD_DIR} direcotry "
-	@test ! -e build || rm -rf build
+	@test ! -e ${BUILD_DIR} || rm -rf ${BUILD_DIR}
 
 tests:
 	@echo "testing using go test, excluding integration-tests"
-	go test --race `go list ./... | grep -v integration-tests`
+	go test --race `go list ./...`
 
-tests-integration:
-	@echo "testing integration-tests package"
-	go test --race `go list ./... | grep integration-tests`
-
-.PHONY:
 $(GOLANGCI_LINT):
 	@echo "downloading golangci-lint to $(BIN_DIR)/golangci-lint "
 	$(shell curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | /usr/bin/env BINARY=golangci-lint sh -s -- -b ${BIN_DIR} ${GOLANGCI_LINT_VERSION})
